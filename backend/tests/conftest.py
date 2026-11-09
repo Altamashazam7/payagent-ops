@@ -6,6 +6,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
+from sqlalchemy import text
 
 from app.core.settings import Settings
 from app.db.session import Database
@@ -35,6 +36,7 @@ async def database() -> AsyncIterator[Database]:
     """Provide an isolated async test database with mapped tables created."""
     database = Database(SecretStr("sqlite+aiosqlite:///:memory:"))
     async with database.engine.begin() as connection:
+        await connection.execute(text("PRAGMA foreign_keys=ON"))
         await connection.run_sync(SampleEntity.metadata.create_all)
     try:
         yield database

@@ -24,12 +24,29 @@ The versioned API is documented at `/docs`. Liveness is available at
 `/api/v1/ready`. Readiness probes PostgreSQL and returns HTTP 503 when it is
 unavailable. Liveness does not assert dependency availability.
 
+## Commerce domain foundation
+
+The backend domain includes users, vendors, transactions, disputes, invoices,
+payouts, agents, decisions, and append-only audit logs. Typed ORM models,
+repositories, Pydantic schemas, and services live under `backend/app/`; no
+commerce HTTP endpoints are exposed yet. Commerce rows use UUID identifiers,
+timezone-aware timestamps, vendor-scoped constraints, and indexed operational
+queries. Users, vendors, and agents support soft deletion; financial and audit
+records are retained.
+
+Payouts start pending approval. Database constraints require an approving
+operator and approval timestamp before a payout can enter an approved,
+processing, or paid state. Agent decisions are recommendations; approval and
+rejection require a human reviewer. Apply the domain migration with
+`python -m alembic upgrade head` from `backend/`.
+
 Run tests, lint, type-checking, and migrations from `backend/`:
 
 ```powershell
 python -m pytest
 python -m ruff check app tests migrations
 python -m mypy --strict app tests
+python -m alembic upgrade head
 python -m alembic upgrade head
 ```
 
