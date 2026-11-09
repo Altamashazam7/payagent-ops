@@ -32,7 +32,18 @@ class JsonLogFormatter(logging.Formatter):
             "circuit_state",
             "error_code",
             "status_code",
+            "request_id",
+            "trace_id",
+            "route",
+            "duration_ms",
             "attempt",
+            "agent_id",
+            "decision_id",
+            "dispute_id",
+            "invoice_id",
+            "payout_id",
+            "reviewer_user_id",
+            "vendor_id",
         ):
             value = getattr(record, field, None)
             if isinstance(value, (str, int, float)):

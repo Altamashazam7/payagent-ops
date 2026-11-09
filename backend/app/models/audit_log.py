@@ -30,6 +30,14 @@ class AuditLog(BaseModel):
         Index("ix_audit_logs_entity_created", "entity_type", "entity_id", "created_at"),
         Index("ix_audit_logs_vendor_created", "vendor_id", "created_at"),
         Index("ix_audit_logs_actor_created", "actor_user_id", "created_at"),
+        Index(
+            "uq_audit_logs_entity_action_request",
+            "entity_type",
+            "entity_id",
+            "action",
+            "request_id",
+            unique=True,
+        ),
     )
 
     entity_type: Mapped[AuditEntityType] = mapped_column(

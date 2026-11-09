@@ -1,24 +1,17 @@
 """FastAPI dependencies for application infrastructure."""
 
-from collections.abc import AsyncIterator
 from typing import Annotated
 
-from fastapi import Depends, Request
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.settings import Settings
-from app.db.session import Database
+from app.db.dependencies import get_session
+from app.events.bus import EventBus, RedisEventBus
+from app.events.notifications import NotificationService
 from app.integrations.paypal import PayPalClients
 from app.repositories.readiness import SqlAlchemyReadinessRepository
 from app.services.readiness import ReadinessService
-
-
-def get_database(request: Request) -> Database:
-    """Resolve the database owned by the active application."""
-    database = getattr(request.app.state, "database", None)
-    if not isinstance(database, Database):
-        raise TypeError("The application database is not configured")
-    return database
 
 
 def get_settings_from_request(request: Request) -> Settings:
@@ -37,12 +30,22 @@ def get_paypal_clients(request: Request) -> PayPalClients:
     return clients
 
 
-async def get_session(
-    database: Annotated[Database, Depends(get_database)],
-) -> AsyncIterator[AsyncSession]:
-    """Yield a request-scoped session; transaction ownership stays with services."""
-    async with database.session_factory() as session:
-        yield session
+def get_event_bus(request: Request) -> EventBus:
+    """Resolve the application-scoped Redis event bus."""
+    event_bus = getattr(request.app.state, "event_bus", None)
+    if not isinstance(event_bus, RedisEventBus):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Real-time events are not configured",
+        )
+    return event_bus
+
+
+def get_notification_service(
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
+) -> NotificationService:
+    """Construct the notification publisher from the shared event transport."""
+    return NotificationService(event_bus)
 
 
 def get_readiness_service(

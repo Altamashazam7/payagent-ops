@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PayAgent Ops frontend
 
-## Getting Started
+The Next.js 15.5 App Router frontend provides authenticated dashboard,
+disputes, invoices, payouts, activity, and copilot workspaces. Copy
+`.env.example` to `.env.local` and configure the organization OIDC provider and
+backend URL before signing in. Register this callback with the provider:
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```text
+http://localhost:3000/api/auth/callback/oidc
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The browser never receives an OIDC access token. NextAuth keeps it in its
+encrypted server-side session cookie, and the same-origin backend proxy
+forwards it to FastAPI. The proxy allowlists read-only reporting endpoints and
+the informational copilot question endpoint; it does not expose approval,
+payout, dispute-submission, or arbitrary backend routes. Configure HTTPS for
+both frontend and backend in production.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The identity provider must issue the backend's required `sub`, `email`,
+`tenant_id`, and `role` claims. `sub` must identify an active local user,
+`email` and `role` must match that user, and `tenant_id` must identify an active
+tenant-owner user. The OIDC provider is responsible for issuing tenant claims
+only to authorized members; the current domain has no separate membership
+table.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+AG Grid Enterprise is enabled. Set `NEXT_PUBLIC_AG_GRID_LICENSE_KEY` to the
+organization's license key to remove its license watermark. This key is
+intended for browser delivery; do not put server secrets in `NEXT_PUBLIC_*`
+variables.
 
-## Learn More
+Install and run from this directory:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm run dev
+npm test
+npm run lint
+npm run typecheck
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The workspace polls reporting endpoints every 60 seconds. Grid CSV export is
+limited to selected, already-loaded rows and does not trigger a financial
+action.

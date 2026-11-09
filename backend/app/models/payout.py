@@ -18,7 +18,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
-from app.models.enums import PayoutStatus
+from app.models.enums import PayoutRecipientType, PayoutStatus
 from app.models.mixins import MonetaryFieldsMixin
 
 if TYPE_CHECKING:
@@ -45,6 +45,11 @@ class Payout(MonetaryFieldsMixin, BaseModel):
         CheckConstraint(
             "status != 'paid' OR paid_at IS NOT NULL", name="paid_at_required"
         ),
+        CheckConstraint(
+            "(paypal_receiver IS NULL AND paypal_recipient_type IS NULL) OR "
+            "(paypal_receiver IS NOT NULL AND paypal_recipient_type IS NOT NULL)",
+            name="paypal_receiver_pair",
+        ),
         UniqueConstraint("vendor_id", "id", name="uq_payouts_vendor_id_id"),
         Index(
             "ix_payouts_vendor_status_created",
@@ -52,6 +57,7 @@ class Payout(MonetaryFieldsMixin, BaseModel):
             "status",
             "created_at",
         ),
+        Index("ix_payouts_vendor_created", "vendor_id", "created_at"),
     )
 
     vendor_id: Mapped[UUID] = mapped_column(
@@ -94,6 +100,18 @@ class Payout(MonetaryFieldsMixin, BaseModel):
         nullable=True,
     )
     reference: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    paypal_receiver: Mapped[str | None] = mapped_column(String(127), nullable=True)
+    paypal_recipient_type: Mapped[PayoutRecipientType | None] = mapped_column(
+        Enum(
+            PayoutRecipientType,
+            name="payout_recipient_type",
+            native_enum=False,
+            create_constraint=True,
+            validate_strings=True,
+            values_callable=lambda values: [member.value for member in values],
+        ),
+        nullable=True,
+    )
 
     vendor: Mapped[Vendor] = relationship(back_populates="payouts")
     requested_by: Mapped[User] = relationship(foreign_keys=[requested_by_user_id])

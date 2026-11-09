@@ -15,6 +15,7 @@ from sqlalchemy import (
     Index,
     String,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -56,6 +57,19 @@ class Invoice(MonetaryFieldsMixin, BaseModel):
         UniqueConstraint("vendor_id", "id", name="uq_invoices_vendor_id_id"),
         UniqueConstraint("transaction_id", name="uq_invoices_transaction_id"),
         Index("ix_invoices_vendor_status_due", "vendor_id", "status", "due_at"),
+        Index(
+            "ix_invoices_vendor_invoice_number_normalized",
+            "vendor_id",
+            text("lower(trim(invoice_number))"),
+        ),
+        Index(
+            "ix_invoices_vendor_compliance_fingerprint",
+            "vendor_id",
+            "amount",
+            "currency",
+            "due_at",
+            text("lower(trim(billing_email))"),
+        ),
     )
 
     vendor_id: Mapped[UUID] = mapped_column(

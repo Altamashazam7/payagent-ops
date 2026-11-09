@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Annotated
@@ -24,6 +25,7 @@ from app.models.enums import (
     DecisionStatus,
     DisputeStatus,
     InvoiceStatus,
+    PayoutRecipientType,
     PayoutStatus,
     TransactionStatus,
     UserRole,
@@ -66,6 +68,24 @@ Confidence = Annotated[
     Decimal,
     Field(ge=0, le=1, max_digits=4, decimal_places=3),
 ]
+
+
+def _validate_paypal_payout_recipient(
+    receiver: str | None,
+    recipient_type: PayoutRecipientType | None,
+) -> None:
+    if (receiver is None) != (recipient_type is None):
+        raise ValueError("PayPal receiver and recipient type must be provided together")
+    if receiver is None:
+        return
+    if recipient_type is PayoutRecipientType.EMAIL:
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", receiver):
+            raise ValueError("PayPal email recipient is invalid")
+    elif recipient_type is PayoutRecipientType.PHONE:
+        if not re.fullmatch(r"\+[1-9]\d{6,14}", receiver):
+            raise ValueError("PayPal phone recipient must use E.164 format")
+    elif not re.fullmatch(r"[A-Za-z0-9._~-]+", receiver):
+        raise ValueError("PayPal ID recipient contains unsupported characters")
 
 
 class DomainInputSchema(BaseModel):
@@ -200,6 +220,16 @@ class PayoutCreate(DomainInputSchema):
     amount: PositiveAmount
     currency: CurrencyCode
     reference: str | None = Field(default=None, max_length=256)
+    paypal_receiver: str | None = Field(default=None, min_length=1, max_length=127)
+    paypal_recipient_type: PayoutRecipientType | None = None
+
+    @model_validator(mode="after")
+    def validate_paypal_recipient(self) -> PayoutCreate:
+        _validate_paypal_payout_recipient(
+            self.paypal_receiver,
+            self.paypal_recipient_type,
+        )
+        return self
 
 
 class PayoutRead(DomainReadSchema):
@@ -213,6 +243,16 @@ class PayoutRead(DomainReadSchema):
     approved_at: datetime | None
     paid_at: datetime | None
     reference: str | None
+    paypal_receiver: str | None
+    paypal_recipient_type: PayoutRecipientType | None
+
+    @model_validator(mode="after")
+    def validate_paypal_recipient(self) -> PayoutRead:
+        _validate_paypal_payout_recipient(
+            self.paypal_receiver,
+            self.paypal_recipient_type,
+        )
+        return self
 
 
 class AgentCreate(DomainInputSchema):

@@ -8,6 +8,8 @@ from enum import StrEnum
 class UserRole(StrEnum):
     ADMIN = "admin"
     OPERATOR = "operator"
+    REVIEWER = "reviewer"
+    EXECUTIVE = "executive"
     VIEWER = "viewer"
 
 
@@ -58,6 +60,12 @@ class PayoutStatus(StrEnum):
     PAID = "paid"
     FAILED = "failed"
     CANCELLED = "cancelled"
+
+
+class PayoutRecipientType(StrEnum):
+    EMAIL = "EMAIL"
+    PHONE = "PHONE"
+    PAYPAL_ID = "PAYPAL_ID"
 
 
 class AgentStatus(StrEnum):
