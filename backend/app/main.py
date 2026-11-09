@@ -12,15 +12,25 @@ from app.core.constants import SERVICE_NAME
 from app.core.logging import configure_logging
 from app.core.settings import Settings, get_settings
 from app.db.session import Database
+from app.integrations.paypal import PayPalClients, create_paypal_clients
+from app.integrations.paypal.approval import HumanApprovalVerifier
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    *,
+    paypal_approval_verifier: HumanApprovalVerifier | None = None,
+) -> FastAPI:
     """Create an application instance with isolated configuration and resources."""
     app_settings = settings or get_settings()
     logger: logging.Logger = configure_logging(app_settings.log_level)
     database = Database(
         app_settings.database_url,
         echo=app_settings.database_echo,
+    )
+    paypal_clients: PayPalClients = create_paypal_clients(
+        app_settings,
+        approval_verifier=paypal_approval_verifier,
     )
 
     @asynccontextmanager
@@ -32,11 +42,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             yield
         finally:
-            await database.dispose()
-            logger.info(
-                "Application stopped",
-                extra={"event": "application_stopped", "service": SERVICE_NAME},
-            )
+            try:
+                await paypal_clients.aclose()
+            finally:
+                await database.dispose()
+                logger.info(
+                    "Application stopped",
+                    extra={"event": "application_stopped", "service": SERVICE_NAME},
+                )
 
     application = FastAPI(
         title=app_settings.app_name,
@@ -47,6 +60,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     application.state.settings = app_settings
     application.state.database = database
+    application.state.paypal_clients = paypal_clients
     application.include_router(health_router, prefix=app_settings.api_v1_prefix)
     application.include_router(probe_router)
     return application

@@ -31,6 +31,22 @@ rejected. User, vendor, and agent records may be soft-deleted; financial and
 audit records are retained. Audit log entries are append-only and use a
 polymorphic entity reference because they can target any domain entity.
 
+## PayPal integration boundary
+
+`app.integrations.paypal` owns async PayPal HTTP transport, OAuth token caching,
+typed API clients, transient retry policy, and a circuit breaker. The
+application factory owns the shared transport lifecycle and exposes API clients
+through a dependency provider; clients also accept injected transports for
+testing. PayPal credentials and sandbox/live selection come from validated
+settings. Logs include safe operation metadata, never credentials or request
+bodies.
+
+The default approval verifier rejects payout creation, order capture, and
+dispute-evidence submission. An application service must inject a verifier
+that confirms the persisted human decision before these operations can reach
+PayPal. Webhook verification returns PayPal's explicit success/failure status;
+consumers must fail closed on anything other than `SUCCESS`.
+
 ## Financial action safety
 
 AI-generated recommendations are not authorizations. Any future payout,

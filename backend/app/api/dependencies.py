@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.settings import Settings
 from app.db.session import Database
+from app.integrations.paypal import PayPalClients
 from app.repositories.readiness import SqlAlchemyReadinessRepository
 from app.services.readiness import ReadinessService
 
@@ -26,6 +27,14 @@ def get_settings_from_request(request: Request) -> Settings:
     if not isinstance(settings, Settings):
         raise TypeError("The application settings are not configured")
     return settings
+
+
+def get_paypal_clients(request: Request) -> PayPalClients:
+    """Resolve the application-scoped PayPal clients for dependency injection."""
+    clients = getattr(request.app.state, "paypal_clients", None)
+    if not isinstance(clients, PayPalClients):
+        raise TypeError("PayPal clients are not configured")
+    return clients
 
 
 async def get_session(

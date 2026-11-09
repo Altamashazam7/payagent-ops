@@ -40,13 +40,31 @@ processing, or paid state. Agent decisions are recommendations; approval and
 rejection require a human reviewer. Apply the domain migration with
 `python -m alembic upgrade head` from `backend/`.
 
+## PayPal integration foundation
+
+Async clients for Orders, Disputes, Invoicing, Payouts, OAuth, and webhook
+signature verification are in `backend/app/integrations/paypal/`. The
+application-scoped clients are available through dependency injection and share
+one `httpx` transport. Set `PAYPAL_ENVIRONMENT` to `sandbox` (the default) or
+`live`, provide `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET`, and set
+`PAYPAL_WEBHOOK_ID` to enable verification. Secrets are environment-driven and
+excluded from logs.
+
+Sensitive capture, dispute-evidence, and payout operations require both a
+human-approval record and an injected persisted-approval verifier. The default
+application composition has no verifier and fails closed; no financial action
+can be submitted until an application service verifies the recorded decision.
+Webhook consumers must process an event only when PayPal returns
+`verification_status: SUCCESS`. No commerce or webhook routes are added in this
+step.
+
 Run tests, lint, type-checking, and migrations from `backend/`:
 
 ```powershell
-python -m pytest
+python -m pytest -q
 python -m ruff check app tests migrations
-python -m mypy --strict app tests
-python -m alembic upgrade head
+python -m ruff format --check app tests migrations
+python -m mypy --strict app tests migrations
 python -m alembic upgrade head
 ```
 

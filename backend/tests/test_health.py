@@ -3,9 +3,11 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import SQLAlchemyError
+from starlette.requests import Request
 
-from app.api.dependencies import get_readiness_service
+from app.api.dependencies import get_paypal_clients, get_readiness_service
 from app.core.constants import API_VERSION, SERVICE_NAME
+from app.integrations.paypal import PayPalClients
 from app.services.readiness import ReadinessService
 
 
@@ -84,3 +86,14 @@ def test_versioned_health_and_readiness_are_documented(
     assert "/api/v1/ready" in paths
     assert "/health" not in paths
     assert "/ready" not in paths
+
+
+def test_paypal_clients_are_resolved_from_application_state(
+    application: FastAPI,
+    client: TestClient,
+) -> None:
+    request = Request({"type": "http", "app": application})
+
+    assert client.get("/health").status_code == 200
+    assert isinstance(get_paypal_clients(request), PayPalClients)
+    assert get_paypal_clients(request) is application.state.paypal_clients

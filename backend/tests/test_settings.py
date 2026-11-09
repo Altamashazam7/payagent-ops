@@ -44,3 +44,50 @@ def test_settings_reject_sync_database_driver(
 
     with pytest.raises(ValidationError):
         Settings()
+
+
+def test_paypal_environment_selects_sandbox_and_live_origins() -> None:
+    sandbox = Settings(
+        database_url=SecretStr("sqlite+aiosqlite:///:memory:"),
+        environment="test",
+        paypal_environment="sandbox",
+    )
+    live = Settings(
+        database_url=SecretStr("sqlite+aiosqlite:///:memory:"),
+        environment="test",
+        paypal_environment="live",
+    )
+
+    assert sandbox.paypal_api_base_url == "https://api-m.sandbox.paypal.com"
+    assert live.paypal_api_base_url == "https://api-m.paypal.com"
+
+
+def test_settings_require_paypal_credentials_as_a_pair() -> None:
+    with pytest.raises(ValidationError, match="configured together"):
+        Settings(
+            database_url=SecretStr("sqlite+aiosqlite:///:memory:"),
+            environment="test",
+            paypal_client_id=SecretStr("client-id"),
+        )
+
+
+def test_settings_mask_paypal_client_credentials() -> None:
+    settings = Settings(
+        database_url=SecretStr("sqlite+aiosqlite:///:memory:"),
+        environment="test",
+        paypal_client_id=SecretStr("paypal-client-id"),
+        paypal_client_secret=SecretStr("paypal-private-secret"),
+    )
+
+    assert "paypal-client-id" not in repr(settings)
+    assert "paypal-private-secret" not in repr(settings)
+
+
+def test_settings_reject_inverted_paypal_retry_waits() -> None:
+    with pytest.raises(ValidationError, match="cannot exceed"):
+        Settings(
+            database_url=SecretStr("sqlite+aiosqlite:///:memory:"),
+            environment="test",
+            paypal_retry_min_wait_seconds=2,
+            paypal_retry_max_wait_seconds=1,
+        )

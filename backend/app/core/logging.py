@@ -25,6 +25,18 @@ class JsonLogFormatter(logging.Formatter):
         dependency = getattr(record, "dependency", None)
         if isinstance(dependency, str):
             payload["dependency"] = dependency
+        for field in (
+            "provider",
+            "operation",
+            "http_method",
+            "circuit_state",
+            "error_code",
+            "status_code",
+            "attempt",
+        ):
+            value = getattr(record, field, None)
+            if isinstance(value, (str, int, float)):
+                payload[field] = value
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
         return json.dumps(payload, separators=(",", ":"))
