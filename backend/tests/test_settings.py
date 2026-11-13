@@ -55,6 +55,11 @@ def test_settings_reject_unknown_environment(
         Settings()
 
 
+def test_settings_reject_demo_auth_outside_development() -> None:
+    with pytest.raises(ValidationError, match="only be used in development"):
+        Settings(environment="test", demo_auth_enabled=True)
+
+
 def test_settings_reject_sync_database_driver(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

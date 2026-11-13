@@ -9,6 +9,12 @@ backend URL before signing in. Register this callback with the provider:
 http://localhost:3000/api/auth/callback/oidc
 ```
 
+For a local demo without an OIDC provider, set `DEMO_AUTH_ENABLED=true` in
+`frontend/.env.local`, the root `.env`, and `backend/.env`, and keep the backend
+`ENVIRONMENT=development`. Run the frontend with `npm run dev` and use
+**Continue as demo executive**. The mode is not registered outside Next.js
+development and the backend rejects it unless its environment is development.
+
 The browser never receives an OIDC access token. NextAuth keeps it in its
 encrypted server-side session cookie, and the same-origin backend proxy
 forwards it to FastAPI. The proxy allowlists read-only reporting endpoints and
@@ -28,7 +34,8 @@ organization's license key to remove its license watermark. This key is
 intended for browser delivery; do not put server secrets in `NEXT_PUBLIC_*`
 variables.
 
-Install and run from this directory:
+Install and run from this directory. The development server binds to localhost
+only:
 
 ```bash
 npm install

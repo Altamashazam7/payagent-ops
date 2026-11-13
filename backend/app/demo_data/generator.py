@@ -9,6 +9,13 @@ from decimal import Decimal
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from app.db.base import Base
+from app.demo_data.identity import (
+    DEMO_EXECUTIVE_EMAIL,
+    DEMO_EXECUTIVE_ID,
+    DEMO_EXECUTIVE_NAME,
+    DEMO_OWNER_EMAIL,
+    DEMO_OWNER_ID,
+)
 from app.models.agent import Agent
 from app.models.audit_log import AuditLog
 from app.models.decision import Decision
@@ -31,8 +38,6 @@ from app.models.transaction import Transaction
 from app.models.user import User
 from app.models.vendor import Vendor
 
-DEMO_OWNER_ID = uuid5(NAMESPACE_URL, "payagent-ops/demo/tenant-owner")
-DEMO_OWNER_EMAIL = "demo-owner@payagent.invalid"
 _VENDOR_NAMES = (
     "Northstar Outfitters",
     "Harbor & Pine",
@@ -82,6 +87,15 @@ def build_demo_dataset(*, now: datetime | None = None) -> DemoDataset:
         email=DEMO_OWNER_EMAIL,
         display_name="PayAgent Demo Operator",
         role=UserRole.ADMIN,
+        status=UserStatus.ACTIVE,
+        created_at=timestamp,
+        updated_at=timestamp,
+    )
+    executive = User(
+        id=DEMO_EXECUTIVE_ID,
+        email=DEMO_EXECUTIVE_EMAIL,
+        display_name=DEMO_EXECUTIVE_NAME,
+        role=UserRole.EXECUTIVE,
         status=UserStatus.ACTIVE,
         created_at=timestamp,
         updated_at=timestamp,
@@ -275,7 +289,7 @@ def build_demo_dataset(*, now: datetime | None = None) -> DemoDataset:
     ]
 
     return DemoDataset(
-        users=[owner],
+        users=[owner, executive],
         vendors=vendors,
         transactions=transactions,
         disputes=disputes,

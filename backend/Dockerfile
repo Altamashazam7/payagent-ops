@@ -15,6 +15,7 @@ RUN groupadd --system --gid 10001 payagent \
 
 COPY --chown=payagent:payagent app ./app
 COPY --chown=payagent:payagent migrations ./migrations
+COPY --chown=payagent:payagent scripts ./scripts
 COPY --chown=payagent:payagent alembic.ini .
 
 USER payagent

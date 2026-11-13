@@ -11,7 +11,13 @@ from sqlalchemy import select
 
 from app.core.settings import get_settings
 from app.db.session import Database
-from app.demo_data.generator import DEMO_OWNER_EMAIL, DEMO_OWNER_ID, build_demo_dataset
+from app.demo_data.generator import build_demo_dataset
+from app.demo_data.identity import (
+    DEMO_EXECUTIVE_EMAIL,
+    DEMO_EXECUTIVE_ID,
+    DEMO_OWNER_EMAIL,
+    DEMO_OWNER_ID,
+)
 from app.models.user import User
 
 _logger = logging.getLogger("payagent_ops.demo_data")
@@ -25,15 +31,41 @@ async def seed_demo_data() -> bool:
     database = Database(settings.database_url, echo=settings.database_echo)
     try:
         async with database.session_factory() as session, session.begin():
+            dataset = build_demo_dataset()
             existing = await session.get(User, DEMO_OWNER_ID)
             if existing is not None:
                 if existing.email != DEMO_OWNER_EMAIL:
                     raise RuntimeError("The deterministic demo identity is occupied")
-                _logger.info(
-                    "Synthetic demo tenant already exists",
-                    extra={"event": "demo_seed_skipped"},
+                executive = await session.get(User, DEMO_EXECUTIVE_ID)
+                if executive is not None:
+                    if executive.email != DEMO_EXECUTIVE_EMAIL:
+                        raise RuntimeError(
+                            "The deterministic demo executive identity is occupied"
+                        )
+                    executive.display_name = dataset.users[1].display_name
+                    executive.role = dataset.users[1].role
+                    executive.status = dataset.users[1].status
+                    executive.deleted_at = None
+                    await session.flush()
+                    _logger.info(
+                        "Synthetic demo tenant already exists",
+                        extra={"event": "demo_seed_skipped"},
+                    )
+                    return False
+                duplicate_executive_email = await session.scalar(
+                    select(User.id).where(User.email == DEMO_EXECUTIVE_EMAIL)
                 )
-                return False
+                if duplicate_executive_email is not None:
+                    raise RuntimeError(
+                        "The demo executive email is already used by another account"
+                    )
+                session.add(dataset.users[1])
+                await session.flush()
+                _logger.info(
+                    "Synthetic demo executive inserted into existing tenant",
+                    extra={"event": "demo_executive_seeded"},
+                )
+                return True
             duplicate_email = await session.scalar(
                 select(User.id).where(User.email == DEMO_OWNER_EMAIL)
             )
@@ -41,7 +73,18 @@ async def seed_demo_data() -> bool:
                 raise RuntimeError(
                     "The demo email is already used by a different account"
                 )
-            dataset = build_demo_dataset()
+            occupied_executive = await session.get(User, DEMO_EXECUTIVE_ID)
+            if occupied_executive is not None:
+                raise RuntimeError(
+                    "The deterministic demo executive identity is occupied"
+                )
+            duplicate_executive_email = await session.scalar(
+                select(User.id).where(User.email == DEMO_EXECUTIVE_EMAIL)
+            )
+            if duplicate_executive_email is not None:
+                raise RuntimeError(
+                    "The demo executive email is already used by another account"
+                )
             for group in dataset.groups():
                 session.add_all(group)
                 await session.flush()

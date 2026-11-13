@@ -20,8 +20,8 @@ python -m uvicorn app.main:create_app --factory --reload
 ```
 
 The versioned API is documented at `/docs`. Liveness is available at
-`/health` and `/api/v1/health`; readiness is available at `/ready` and
-`/api/v1/ready`. Readiness probes PostgreSQL and returns HTTP 503 when it is
+`/health` and `/api/v1/health`; readiness is available at `/readiness`, `/ready`,
+and `/api/v1/ready`. Readiness probes PostgreSQL and returns HTTP 503 when it is
 unavailable. Liveness does not assert dependency availability.
 
 ## Commerce domain foundation
@@ -178,3 +178,9 @@ payout requests; it does not call PayPal or approve financial actions. See
 [demo-data/README.md](demo-data/README.md), the [demo script](docs/demo-script.md),
 the [hackathon story](docs/hackathon-story.md), and the
 [pitch one-pager](docs/pitch-one-pager.md).
+
+For local demonstrations without an OIDC provider, set `DEMO_AUTH_ENABLED=true`
+in the root `.env`, `backend/.env`, and `frontend/.env.local`. This mode is
+available only with the backend environment set to `development` and the
+frontend running with `npm run dev`. It signs in the seeded synthetic executive
+for the seeded demo tenant; production OIDC authentication is unchanged.

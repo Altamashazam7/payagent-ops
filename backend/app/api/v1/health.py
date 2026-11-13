@@ -27,6 +27,8 @@ def read_health(
 
 @router.get("/ready", response_model=ReadinessResponse)
 @probe_router.get("/ready", response_model=ReadinessResponse)
+@router.get("/readiness", response_model=ReadinessResponse)
+@probe_router.get("/readiness", response_model=ReadinessResponse)
 async def read_readiness(
     readiness_service: Annotated[ReadinessService, Depends(get_readiness_service)],
     settings: Annotated[Settings, Depends(get_settings_from_request)],

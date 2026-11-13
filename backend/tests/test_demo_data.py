@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 from app.demo_data.generator import DEMO_OWNER_ID, build_demo_dataset
+from app.demo_data.identity import DEMO_EXECUTIVE_EMAIL, DEMO_EXECUTIVE_ID
 from app.models.enums import DecisionStatus, PayoutStatus, UserRole, VendorStatus
 
 
@@ -14,6 +15,9 @@ def test_demo_dataset_is_deterministic_and_contains_only_pending_actions() -> No
     assert first.users[0].id == DEMO_OWNER_ID
     assert first.users[0].email.endswith(".invalid")
     assert first.users[0].role is UserRole.ADMIN
+    assert first.users[1].id == DEMO_EXECUTIVE_ID
+    assert first.users[1].email == DEMO_EXECUTIVE_EMAIL
+    assert first.users[1].role is UserRole.EXECUTIVE
     assert [vendor.id for vendor in first.vendors] == [
         vendor.id for vendor in second.vendors
     ]

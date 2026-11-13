@@ -60,6 +60,15 @@ def test_root_readiness_is_available_for_platform_probes(
     assert response.json()["status"] == "ready"
 
 
+def test_root_readiness_alias_is_available_for_platform_probes(
+    client: TestClient,
+) -> None:
+    response = client.get("/readiness")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ready"
+
+
 def test_failed_readiness_check_returns_503_without_leaking_error(
     application: FastAPI,
     client: TestClient,

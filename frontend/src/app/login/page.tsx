@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
 import { LoginButton } from "@/app/login/login-button";
-import { authOptions } from "@/lib/auth";
+import { authOptions, isDemoAuthEnabled } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +50,10 @@ export default async function LoginPage() {
             Use your organization account to access tenant-scoped commerce
             operations.
           </p>
-          <LoginButton configured={configured} />
+          <LoginButton
+            configured={configured}
+            demoEnabled={isDemoAuthEnabled}
+          />
         </div>
       </section>
     </main>

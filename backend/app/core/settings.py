@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     app_version: str = Field(default=API_VERSION, min_length=1)
     environment: Literal["development", "test", "staging", "production"] = "development"
     debug: bool = False
+    demo_auth_enabled: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     database_url: SecretStr = SecretStr(
         "postgresql+psycopg://localhost:5432/payagent_ops"
@@ -146,6 +147,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_paypal_configuration(self) -> Settings:
+        if self.demo_auth_enabled and self.environment != "development":
+            raise ValueError("DEMO_AUTH_ENABLED can only be used in development")
         oidc_values = (self.oidc_issuer, self.oidc_audience, self.oidc_jwks_url)
         if any(value is not None for value in oidc_values) and not all(
             value is not None for value in oidc_values
